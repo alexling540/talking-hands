@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit
 from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtCore import QTimer
 from datetime import datetime
@@ -45,7 +45,7 @@ class UI_Window(QWidget):
 
         layout.addLayout(btn_layout)
 
-        self.returnedString = QLabel()
+        self.returnedString = QLineEdit("")
         layout.addWidget(self.returnedString)
 
         self.videoFeed = QLabel()
@@ -135,8 +135,11 @@ class UI_Window(QWidget):
             print(np.argmax(predictions))
 
             highest_probability_index = np.argmax(predictions)
-            print('Classified as: ' + str(labels[highest_probability_index]))
-            print()
+            pred_label = labels[highest_probability_index].decode("utf-8")
+            print('Classified as: ' + pred_label)
+
+            self.returnedString.setText(self.returnedString.text() + pred_label)
+
             #
             # for index, p in enumerate(predictions):
             #     truncated_probability = np.float64(np.round(p, 8))
