@@ -1,13 +1,13 @@
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit
 from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QTimer, QByteArray, QUrl
+from PyQt5.QtMultimedia import QMediaContent, QMediaPlayer
 from datetime import datetime
 import cv2
 import tensorflow as tf
 import numpy as np
 from PIL import Image
-import requests
-from msrest.authentication import ApiKeyCredentials
+from google.cloud import texttospeech
 
 
 class UI_Window(QWidget):
@@ -19,6 +19,15 @@ class UI_Window(QWidget):
         self.frame = None
         self.timer = QTimer()
         self.timer.timeout.connect(self.nextFrameSlot)
+
+        self.tts_client = texttospeech.TextToSpeechClient()
+        self.voice = texttospeech.VoiceSelectionParams(
+            language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+        )
+        self.audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3
+        )
+        self.player = QMediaPlayer()
 
         layout = QVBoxLayout()
 
@@ -47,6 +56,11 @@ class UI_Window(QWidget):
 
         self.returnedString = QLineEdit("")
         layout.addWidget(self.returnedString)
+
+        tts_btn = QPushButton('TTS')
+        tts_btn.clicked.connect(self.tts)
+        layout.addWidget(tts_btn)
+
 
         self.videoFeed = QLabel()
         self.videoFeed.setFixedSize(640, 480)
@@ -161,6 +175,27 @@ class UI_Window(QWidget):
 
     def worker_callback(self, data):
         print(data)
+
+    def tts(self):
+        response = self.tts_client.synthesize_speech(
+            input=texttospeech.SynthesisInput(text=self.returnedString.text()),
+            voice=self.voice,
+            audio_config=self.audio_config
+        )
+        ts = datetime.now().timestamp()
+        with open("output-{}.mp3".format(ts), "wb") as out:
+            out.write(response.audio_content)
+
+        # print(response)
+        # qaf = QtMultimedia.QAudioFormat()
+        # qaf.setCodec("audio/x-raw")
+        # b_arr = QByteArray(response.audio_content)
+        # a_buff = QtMultimedia.QAudioBuffer(b_arr, qaf, startTime=0)
+        # content = QtMultimedia.QMediaContent(a_buff)
+        content = QMediaContent(QUrl.fromLocalFile("output-{}.mp3".format(ts)))
+        self.player.setMedia(content)
+        # player.setMedia(QtMultimedia.QMediaContent(), a_buff)
+        self.player.play()
 
 
 def convert_to_opencv(image):
